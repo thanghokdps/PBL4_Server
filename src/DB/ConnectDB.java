@@ -7,7 +7,7 @@ public class ConnectDB {
 		Connection conn = null;
 		try {
 			Class.forName("com.mysql.cj.jdbc.Driver");
-			conn = DriverManager.getConnection("jdbc:mysql://127.0.0.1/pbl4","root","");
+			conn = DriverManager.getConnection("jdbc:mysql://127.0.0.1:3307/pbl4","root","");
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();

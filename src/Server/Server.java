@@ -1,6 +1,5 @@
 package Server;
 
-import java.util.List;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
@@ -16,12 +15,11 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Vector;
 
-import com.google.gson.Gson;
-
+import com.google.gson.*;
 import DB.ConnectDB;
+import Model.User;
 import Model.Message;
 //import Model.Attachment;
-import Model.User;
 
 public class Server {
 	public static void main(String[] args) throws Exception {
@@ -55,7 +53,6 @@ class Menber extends Thread {
 	private BufferedReader br;
 	private PrintWriter pw = null;
 	Gson gson = new Gson();
-
 	public Menber(Socket socket, Server server) {
 		this.socket = socket;
 		this.server = server;
@@ -85,25 +82,27 @@ class Menber extends Thread {
 					String username = request.get("username");
 					String password = request.get("password");
 					System.out.println("Login " + username + " " + password);
-					if (login(username, password) == null) {
+					User user = login(username, password);
+					if (user == null) {
 						response.put("status", "fail");
 					} else {
 						response.put("status", "success");
-						response.put("id", Integer.toString(login(username, password).getid()));
+						response.put("id", Integer.toString(user.getid()));
 						response.put("username", username);
 						response.put("password", password);
+						response.put("email",user.getemail());
 					}
 					break;
 				case "register":
 					String name = request.get("username");
 					String pass = request.get("password");
 					String email = request.get("email");
-					User user = new User();
-					user.setusername(name);
-					user.setpassword(pass);
-					user.setemail(email);
-					System.out.println("Register " + user.getusername() + user.getpassword() + user.getemail());
-					if (register(user) == false) {
+					User user1 = new User();
+					user1.setusername(name);
+					user1.setpassword(pass);
+					user1.setemail(email);
+					System.out.println("Register " + user1.getusername() + user1.getpassword() + user1.getemail());
+					if (register(user1) == false) {
 						response.put("status", "fail");
 					} else {
 						response.put("status", "success");
@@ -113,7 +112,7 @@ class Menber extends Thread {
 					break;
 				case "insert_mess":
 					int id_sender = Integer.parseInt(request.get("id_sender"));
-					String namereceiver = (String) request.get("receiver");
+					String namereceiver =(String)request.get("receiver");
 					int id_receiver = getIDbyUsername(namereceiver);
 					String title = request.get("title");
 					String content = request.get("content");
@@ -131,7 +130,7 @@ class Menber extends Thread {
 					} else {
 						response.put("status", "success");
 						response.put("id_sender", String.valueOf(id_sender));
-						response.put("id_receiverr", String.valueOf(id_receiver));
+						response.put("id_receiver", String.valueOf(id_receiver));
 						response.put("title", title);
 						response.put("content", content);
 						response.put("create_at", String.valueOf(create_at));
@@ -141,36 +140,9 @@ class Menber extends Thread {
 					int id = Integer.parseInt(request.get("id"));
 					ArrayList<Message> listmess = getAllMess(id);
 					String list = gson.toJson(listmess);
-					if (listmess != null) {
-						response.put("status", "success");
-						response.put("id", String.valueOf(id));
-						response.put("show_listmess", list);
-					} else {
-						response.put("status", "fail");
-					}
-					break;
-				case "getAllUser":
-					ArrayList<User> listUser = getAllUser();
-					String list_user = gson.toJson(listUser);
-					if (listUser != null) {
-						response.put("status", "success");
-						response.put("listUser", list_user);
-					} else {
-						response.put("status", "fail");
-					}
-					break;
-				case "search":
-					String text = (String) request.get("text");
-					int id_search = Integer.parseInt(request.get("id"));
-					ArrayList<Message> list_search = searchMessage(text, id_search);
-					String search = gson.toJson(list_search);
-					if (list_search != null) {
-						response.put("status", "success");
-						response.put("id", String.valueOf(id_search));
-						response.put("search", search);
-					} else {
-						response.put("status", "fail");
-					}
+					response.put("status", "success");
+					response.put("id", String.valueOf(id));
+					response.put("show_listmess", list);
 					break;
 				case "show_Mess":
 					int mess_id = Integer.parseInt(request.get("id"));
@@ -181,11 +153,21 @@ class Menber extends Thread {
 					response.put("show_Mess", mesString);
 					break;
 				case "delete_Mess":
-					int Id = Integer.parseInt(request.get("id"));
-					if (deleteMess(Id) > 0) {
+					int noteId = Integer.parseInt(request.get("id"));
+					if (deleteMess(noteId) > 0) {
 						response.put("status", "success");
 					} else {
 						response.put("status", "fail");
+					}
+					break;
+				case "forget_Password":
+					String email1 = request.get("email");
+					String pass1 = request.get("password");
+					User user11 = UpdatePassword(email1, pass1);
+					if (user11 == null) {
+						response.put("status", "fail");
+					} else {
+						response.put("status", "success");
 					}
 					break;
 				}
@@ -195,24 +177,11 @@ class Menber extends Thread {
 				pw.write(responseLine);
 				pw.flush();
 			}
-		} catch (IOException | SQLException e) {
+		} catch (IOException e) {
 			e.printStackTrace();
-		}
-	}
-
-	public int getIDbyUsername(String username) throws SQLException {
-		ResultSet result = null;
-		Connection connect = ConnectDB.getConnection();
-		String sql = "select id from user where username=?";
-		try {
-			PreparedStatement pst = connect.prepareStatement(sql);
-			pst.setString(1, username);
-			result = pst.executeQuery();
 		} catch (SQLException e) {
 			e.printStackTrace();
-		}
-		result.next();
-		return result.getInt("id");
+		} 
 	}
 
 	public User login(String username, String password) {
@@ -225,9 +194,9 @@ class Menber extends Thread {
 			if (rs.next()) {
 				User user = new User();
 				user.setid(rs.getInt("id"));
+				user.setemail(rs.getString("email"));
 				user.setusername(rs.getString("username"));
 				user.setpassword(rs.getString("password"));
-				user.setemail(rs.getString("email"));
 				connect.close();
 				return user;
 			}
@@ -290,24 +259,6 @@ class Menber extends Thread {
 		return listmess;
 	}
 
-	public ArrayList<User> getAllUser() {
-		ArrayList<User> listUser = new ArrayList<>();
-		Connection connect = ConnectDB.getConnection();
-		String sql = "select * from user";
-		try {
-			PreparedStatement pst = connect.prepareStatement(sql);
-			ResultSet rs = pst.executeQuery();
-			while (rs.next()) {
-				User user = new User(rs.getInt("id"), rs.getString("username"), rs.getString("password"),
-						rs.getString("email"));
-				listUser.add(user);
-			}
-		} catch (SQLException e) {
-			e.printStackTrace();
-		}
-		return listUser;
-	}
-
 	public Message getMess(int id) {
 		Message mess = new Message();
 		Connection connect = ConnectDB.getConnection();
@@ -339,77 +290,86 @@ class Menber extends Thread {
 		}
 		return result;
 	}
-
-	public ArrayList<Message> searchMessage(String text, int id) {
-		ArrayList<Message> list_mess = new ArrayList<Message>();
-		ArrayList<User> list_user = searchUser(text);
-		List<Integer> ids = new ArrayList<Integer>();
-		for (int i = 0; i < list_user.size(); i++) {
-			ids.add(list_user.get(i).getid());
-		}
-		String list_id = ids.toString();
-		String end = "";
-		for (int i = 1; i < list_id.length()-1; i++) {
-			end = end + list_id.charAt(i);
-		}
+	
+	public String getUsernamebyID(int id) throws SQLException {
+		ResultSet result = null;
 		Connection connect = ConnectDB.getConnection();
-		if (list_user.size() == 0) {
-			try {
-				String sql = "select * from message where id_receiver = " + id + " and title like \'%" + text
-						+ "%\' order by id desc";
-				PreparedStatement pst = connect.prepareStatement(sql);
-				ResultSet rs = pst.executeQuery();
-				while (rs.next()) {
-					Message mess = new Message(rs.getInt("id"), rs.getInt("id_sender"), rs.getInt("id_receiver"),
-							rs.getString("title"), rs.getString("content"), rs.getString("create_at"));
-					list_mess.add(mess);
-				}
-			} catch (SQLException e) {
-				e.printStackTrace();
-			}
-		} else {
-			try {
-				String sql = "select * from message where id_receiver = " + id + " and id_sender in (" + end
-						+ ") or id_receiver = " + id + " and title like \'%" + text + "%\' order by id desc";
-				System.out.print("ddddd" + sql);
-				PreparedStatement pst = connect.prepareStatement(sql);
-				ResultSet rs = pst.executeQuery();
-				while (rs.next()) {
-					Message mess = new Message(rs.getInt("id"), rs.getInt("id_sender"), rs.getInt("id_receiver"),
-							rs.getString("title"), rs.getString("content"), rs.getString("create_at"));
-					list_mess.add(mess);
-				}
-			} catch (SQLException e) {
-				e.printStackTrace();
-			}
-		}
-//		ArrayList<Message> list = new ArrayList<Message>();
-//		for (int i = 0; i < list_mess.size(); i++) {
-//			for (int j = i + 1; j < list_mess.size(); j++) {
-//				if(list_mess.get(i).getid()!=list_mess.get(j).getid()) {
-//					list.add(list_mess.get(i));
-//				}
-//			}
-//		}
-		return list_mess;
-	}
-
-	public ArrayList<User> searchUser(String text) {
-		ArrayList<User> list = new ArrayList<User>();
-		Connection connect = ConnectDB.getConnection();
-		String sql = "select * from user where username like \'%" + text + "%\'";
+		String sql = "select username from user where id=?";
 		try {
 			PreparedStatement pst = connect.prepareStatement(sql);
-			ResultSet rs = pst.executeQuery();
-			while (rs.next()) {
-				User user = new User(rs.getInt("id"), rs.getString("username"), rs.getString("password"),
-						rs.getString("email"));
-				list.add(user);
+			pst.setInt(1, id);
+			result = pst.executeQuery();
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+		result.next();
+		return result.getString("username");
+	}
+	
+	public int getIDbyUsername(String username) throws SQLException{
+		ResultSet result = null;
+		Connection connect = ConnectDB.getConnection();
+		String sql = "select id from user where username=?";
+		try {
+			PreparedStatement pst = connect.prepareStatement(sql);
+			pst.setString(1, username);
+			result = pst.executeQuery();
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+		result.next();
+		return result.getInt("id");
+	}
+	
+	public User getUserbyID(int id) {
+		Connection connect = ConnectDB.getConnection();
+		String sql = "select * from user where id=" + id;
+		PreparedStatement ps;
+		try {
+			ps = (PreparedStatement) connect.prepareStatement(sql);
+			ResultSet rs = ps.executeQuery();
+			if (rs.next()) {
+				User user = new User();
+				user.setid(rs.getInt("id"));
+				user.setemail(rs.getString("email"));
+				user.setusername(rs.getString("username"));
+				user.setpassword(rs.getString("password"));
+				connect.close();
+				return user;
 			}
 		} catch (SQLException e) {
 			e.printStackTrace();
 		}
-		System.out.print(list.toString());
-		return list;
+		return null;
+	}
+	
+	public User UpdatePassword(String email, String Pass) {
+		Connection connect = ConnectDB.getConnection();
+		String sql1 = "select * from user where email=?";
+		String sql2 = "update user set password = ? where email = ?";
+		try {
+			PreparedStatement pst = connect.prepareStatement(sql2);
+			pst.setString(1, Pass);
+			pst.setString(2, email);
+			System.out.println(pst.toString());
+			if (pst.executeUpdate()==1) {
+				PreparedStatement pst1 = connect.prepareStatement(sql1);
+				pst1.setString(1, email);
+				ResultSet rs = pst1.executeQuery();
+				if (rs.next()) {
+					User user = new User();
+					user.setid(rs.getInt("id"));
+					user.setemail(rs.getString("email"));
+					user.setusername(rs.getString("username"));
+					user.setpassword(rs.getString("password"));
+					connect.close();
+					return user;
+				}
+			}
+		} catch (SQLException e) {
+			e.printStackTrace();
+			return null;
+		}
+		return null;
 	}
 }
