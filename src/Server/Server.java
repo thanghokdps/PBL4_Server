@@ -94,9 +94,9 @@ class Menber extends Thread {
 					}
 					break;
 				case "register":
-					String name = request.get("username");
-					String pass = request.get("password");
-					String email = request.get("email");
+					String name = request.get("username").trim();
+					String pass = request.get("password").trim();
+					String email = request.get("email").trim();
 					User user1 = new User();
 					user1.setusername(name);
 					user1.setpassword(pass);
@@ -113,27 +113,30 @@ class Menber extends Thread {
 				case "insert_mess":
 					int id_sender = Integer.parseInt(request.get("id_sender"));
 					String namereceiver =(String)request.get("receiver");
-					int id_receiver = getIDbyUsername(namereceiver);
-					String title = request.get("title");
-					String content = request.get("content");
-					String create_at = request.get("create_at");
-					Message message = new Message();
-					message.setid_sender(id_sender);
-					message.setid_receiver(id_receiver);
-					message.settitle(title);
-					message.setcontent(content);
-					message.setcreate_at(create_at);
-					System.out.println("Add " + message.getid_sender() + message.getid_receiver() + message.gettitle()
-							+ message.getcontent() + message.getcreate_at());
-					if (addMess(message) == false) {
-						response.put("status", "fail");
-					} else {
-						response.put("status", "success");
-						response.put("id_sender", String.valueOf(id_sender));
-						response.put("id_receiver", String.valueOf(id_receiver));
-						response.put("title", title);
-						response.put("content", content);
-						response.put("create_at", String.valueOf(create_at));
+					String[] receivers = namereceiver.split(",");
+					for (String string : receivers) {
+						int id_receiver = getIDbyUsername(string.trim());
+						String title = request.get("title");
+						String content = request.get("content");
+						String create_at = request.get("create_at");
+						Message message = new Message();
+						message.setid_sender(id_sender);
+						message.setid_receiver(id_receiver);
+						message.settitle(title);
+						message.setcontent(content);
+						message.setcreate_at(create_at);
+						System.out.println("Add " + message.getid_sender() + message.getid_receiver() + message.gettitle()
+								+ message.getcontent() + message.getcreate_at());
+						if (addMess(message) == false) {
+							response.put("status", "fail");
+						} else {
+							response.put("status", "success");
+							response.put("id_sender", String.valueOf(id_sender));
+							response.put("id_receiver", String.valueOf(id_receiver));
+							response.put("title", title);
+							response.put("content", content);
+							response.put("create_at", String.valueOf(create_at));
+						}
 					}
 					break;
 				case "show_listMess":
