@@ -147,11 +147,20 @@ class Menber extends Thread {
 					int idMess = Integer.parseInt(request.get("id_mess"));
 					ArrayList<Attachment> atm = getAttachment(idMess);
 					String attachmentString = gson.toJson(atm);
-					response.put("status", "success");
-					response.put("show_Attachment", attachmentString);
 					if (atm != null) {
 						response.put("status", "success");
 						response.put("show_Attachment", attachmentString);
+					} else {
+						response.put("status", "fail");
+					}
+					break;
+				case "download_Attachment":
+					int id_down = Integer.parseInt(request.get("id_down"));
+					Attachment down = downloadAttachment(id_down);
+					String attachment_down = gson.toJson(down);
+					if (down != null) {
+						response.put("status", "success");
+						response.put("attachment_down", attachment_down);
 					} else {
 						response.put("status", "fail");
 					}
@@ -453,6 +462,28 @@ class Menber extends Thread {
 			e.printStackTrace();
 		}
 		return data;
+	}
+	
+	public Attachment downloadAttachment(int id) throws IOException {
+		Attachment attachment = new Attachment();
+		Connection connect = ConnectDB.getConnection();
+		String sql = "SELECT * FROM attachment WHERE id = ?";
+		try {
+			PreparedStatement pst = connect.prepareStatement(sql);
+			pst.setInt(1, id);
+			ResultSet rs = pst.executeQuery();
+			if (rs.next()) {
+				Blob blob = rs.getBlob("file_data");
+				InputStream inputStream = blob.getBinaryStream();
+				byte[] in_byte = inputStream.readAllBytes();
+				String file_data = in_byte.toString();
+				attachment = new Attachment(rs.getInt("id"), rs.getInt("id_mess"), rs.getString("file_name"),
+						file_data);
+			}
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+		return attachment;
 	}
 
 	public int deleteMess(int id) {
