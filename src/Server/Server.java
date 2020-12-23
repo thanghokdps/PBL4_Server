@@ -16,6 +16,7 @@ import java.util.HashMap;
 import java.util.Vector;
 
 import com.google.gson.*;
+
 import DB.ConnectDB;
 import Model.User;
 import Model.Message;
@@ -114,30 +115,33 @@ class Menber extends Thread {
 					int id_sender = Integer.parseInt(request.get("id_sender"));
 					String namereceiver =(String)request.get("receiver");
 					String[] receivers = namereceiver.split(",");
+					String title = request.get("title");
+					String content = request.get("content");
+					String create_at = request.get("create_at");
+					Message message = new Message();
+					message.setid_sender(id_sender);
+					message.settitle(title);
+					message.setcontent(content);
+					message.setcreate_at(create_at);
+					String status = ""; 
+					String receiver = ""; 
 					for (String string : receivers) {
 						int id_receiver = getIDbyUsername(string.trim());
-						String title = request.get("title");
-						String content = request.get("content");
-						String create_at = request.get("create_at");
-						Message message = new Message();
-						message.setid_sender(id_sender);
 						message.setid_receiver(id_receiver);
-						message.settitle(title);
-						message.setcontent(content);
-						message.setcreate_at(create_at);
 						System.out.println("Add " + message.getid_sender() + message.getid_receiver() + message.gettitle()
 								+ message.getcontent() + message.getcreate_at());
 						if (addMess(message) == false) {
-							response.put("status", "fail");
+							status+="fail,";
+							receiver+=string+",";
 						} else {
-							response.put("status", "success");
-							response.put("id_sender", String.valueOf(id_sender));
-							response.put("id_receiver", String.valueOf(id_receiver));
-							response.put("title", title);
-							response.put("content", content);
-							response.put("create_at", String.valueOf(create_at));
+							status+="success,";
+							receiver+=string+",";
 						}
 					}
+					status=status.substring(0, status.length()-1);
+					receiver=receiver.substring(0, receiver.length()-1);
+					response.put("status", status);
+					response.put("receiver", receiver);
 					break;
 				case "show_listMess":
 					int id = Integer.parseInt(request.get("id"));
@@ -173,6 +177,21 @@ class Menber extends Thread {
 						response.put("status", "success");
 					}
 					break;
+//				case "insert_Draft":
+//					
+//					break;
+//				case "update_Draft":
+//					
+//					break;
+//				case "delete_Draft":
+//					
+//					break;
+//				case "show_Draft":
+//					
+//					break;
+//				case "show_listDraft":
+//					
+//					break;
 				}
 				String responseLine = gson.toJson(response);
 				responseLine = responseLine + "\n";
@@ -225,22 +244,25 @@ class Menber extends Thread {
 		return false;
 	}
 
-	public boolean addMess(Message message) {
+	public boolean addMess(Message message) throws SQLException {
 		Connection connect = ConnectDB.getConnection();
-		String sql = "insert into message (id_sender, id_receiver, title, content, create_at) values(?,?,?,?,?)";
-		try {
+		if (message.getid_receiver()==-1) {
+			return false;
+		}
+		else {
+			String sql = "insert into message (id_sender, id_receiver, title, content, create_at) values(?,?,?,?,?)";
 			PreparedStatement ps = connect.prepareCall(sql);
 			ps.setInt(1, message.getid_sender());
 			ps.setInt(2, message.getid_receiver());
 			ps.setString(3, message.gettitle());
 			ps.setString(4, message.getcontent());
 			ps.setString(5, message.getcreate_at());
-			ps.executeUpdate();
-			return true;
-		} catch (SQLException e) {
-			e.printStackTrace();
+			if(ps.executeUpdate()==0)
+				return false;
+			else {
+				return true;
+			}
 		}
-		return false;
 	}
 
 	public ArrayList<Message> getAllMess(int id) {
@@ -320,8 +342,9 @@ class Menber extends Thread {
 		} catch (SQLException e) {
 			e.printStackTrace();
 		}
-		result.next();
-		return result.getInt("id");
+		if(result.next())
+			return result.getInt("id");
+		else return -1;
 	}
 	
 	public User getUserbyID(int id) {
