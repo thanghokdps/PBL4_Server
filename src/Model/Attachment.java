@@ -6,6 +6,17 @@ public class Attachment {
 	private String file_name;
 	private String file_data;
 
+	public Attachment() {
+
+	}
+
+	public Attachment(int id, int id_mess, String file_name, String file_data) {
+		this.id = id;
+		this.id_mess = id_mess;
+		this.file_name = file_name;
+		this.file_data = file_data;
+	}
+
 	public int getid() {
 		return id;
 	}

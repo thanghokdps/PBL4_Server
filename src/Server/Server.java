@@ -2,12 +2,14 @@ package Server;
 
 import java.util.List;
 import java.io.BufferedReader;
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.sql.Blob;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -19,6 +21,7 @@ import java.util.Vector;
 import com.google.gson.Gson;
 
 import DB.ConnectDB;
+import Model.Attachment;
 import Model.Message;
 //import Model.Attachment;
 import Model.User;
@@ -111,6 +114,48 @@ class Menber extends Thread {
 						response.put("password", pass);
 					}
 					break;
+				case "forget_Password":
+					String email1 = request.get("email");
+					String pass1 = request.get("password");
+					User user11 = UpdatePassword(email1, pass1);
+					if (user11 == null) {
+						response.put("status", "fail");
+					} else {
+						response.put("status", "success");
+					}
+					break;
+				case "show_listMess":
+					int id = Integer.parseInt(request.get("id"));
+					ArrayList<Message> listmess = getAllMess(id);
+					String list = gson.toJson(listmess);
+					if (listmess != null) {
+						response.put("status", "success");
+						response.put("id", String.valueOf(id));
+						response.put("show_listmess", list);
+					} else {
+						response.put("status", "fail");
+					}
+					break;
+				case "show_Mess":
+					int mess_id = Integer.parseInt(request.get("id"));
+					Message mess = getMess(mess_id);
+					String messString = gson.toJson(mess);
+					response.put("status", "success");
+					response.put("show_Mess", messString);
+					break;
+				case "show_Attachment":
+					int idMess = Integer.parseInt(request.get("id_mess"));
+					ArrayList<Attachment> atm = getAttachment(idMess);
+					String attachmentString = gson.toJson(atm);
+					response.put("status", "success");
+					response.put("show_Attachment", attachmentString);
+					if (atm != null) {
+						response.put("status", "success");
+						response.put("show_Attachment", attachmentString);
+					} else {
+						response.put("status", "fail");
+					}
+					break;
 				case "insert_mess":
 					int id_sender = Integer.parseInt(request.get("id_sender"));
 					String namereceiver = (String) request.get("receiver");
@@ -137,24 +182,29 @@ class Menber extends Thread {
 						response.put("create_at", String.valueOf(create_at));
 					}
 					break;
-				case "show_listMess":
-					int id = Integer.parseInt(request.get("id"));
-					ArrayList<Message> listmess = getAllMess(id);
-					String list = gson.toJson(listmess);
-					if (listmess != null) {
-						response.put("status", "success");
-						response.put("id", String.valueOf(id));
-						response.put("show_listmess", list);
-					} else {
+				case "insert_attachment":
+					int id_mess = getMaxIdMess();
+					String file_name = (String) request.get("file_name");
+					String file_data = (String) request.get("file_data");
+					Attachment attachment = new Attachment();
+					attachment.setid_mess(id_mess);
+					attachment.setfile_name(file_name);
+					attachment.setfile_data(file_data);
+					System.out.println(
+							"Add " + attachment.getid_mess() + attachment.getfile_name() + attachment.getfile_data());
+					if (addAttachment(attachment) == false) {
 						response.put("status", "fail");
+					} else {
+						response.put("status", "success");
+						response.put("id_mess", String.valueOf(id_mess));
+						response.put("file_name", file_name);
+						response.put("file_data", file_data);
 					}
 					break;
-				case "getAllUser":
-					ArrayList<User> listUser = getAllUser();
-					String list_user = gson.toJson(listUser);
-					if (listUser != null) {
+				case "delete_Mess":
+					int Id = Integer.parseInt(request.get("id"));
+					if (deleteMess(Id) > 0) {
 						response.put("status", "success");
-						response.put("listUser", list_user);
 					} else {
 						response.put("status", "fail");
 					}
@@ -172,18 +222,12 @@ class Menber extends Thread {
 						response.put("status", "fail");
 					}
 					break;
-				case "show_Mess":
-					int mess_id = Integer.parseInt(request.get("id"));
-					Message mess = getMess(mess_id);
-					String mesString = gson.toJson(mess);
-					response.put("status", "success");
-					response.put("mess_id", String.valueOf(mess_id));
-					response.put("show_Mess", mesString);
-					break;
-				case "delete_Mess":
-					int Id = Integer.parseInt(request.get("id"));
-					if (deleteMess(Id) > 0) {
+				case "getAllUser":
+					ArrayList<User> listUser = getAllUser();
+					String list_user = gson.toJson(listUser);
+					if (listUser != null) {
 						response.put("status", "success");
+						response.put("listUser", list_user);
 					} else {
 						response.put("status", "fail");
 					}
@@ -198,21 +242,6 @@ class Menber extends Thread {
 		} catch (IOException | SQLException e) {
 			e.printStackTrace();
 		}
-	}
-
-	public int getIDbyUsername(String username) throws SQLException {
-		ResultSet result = null;
-		Connection connect = ConnectDB.getConnection();
-		String sql = "select id from user where username=?";
-		try {
-			PreparedStatement pst = connect.prepareStatement(sql);
-			pst.setString(1, username);
-			result = pst.executeQuery();
-		} catch (SQLException e) {
-			e.printStackTrace();
-		}
-		result.next();
-		return result.getInt("id");
 	}
 
 	public User login(String username, String password) {
@@ -253,22 +282,34 @@ class Menber extends Thread {
 		return false;
 	}
 
-	public boolean addMess(Message message) {
+	public User UpdatePassword(String email, String Pass) {
 		Connection connect = ConnectDB.getConnection();
-		String sql = "insert into message (id_sender, id_receiver, title, content, create_at) values(?,?,?,?,?)";
+		String sql1 = "select * from user where email=?";
+		String sql2 = "update user set password = ? where email = ?";
 		try {
-			PreparedStatement ps = connect.prepareCall(sql);
-			ps.setInt(1, message.getid_sender());
-			ps.setInt(2, message.getid_receiver());
-			ps.setString(3, message.gettitle());
-			ps.setString(4, message.getcontent());
-			ps.setString(5, message.getcreate_at());
-			ps.executeUpdate();
-			return true;
+			PreparedStatement pst = connect.prepareStatement(sql2);
+			pst.setString(1, Pass);
+			pst.setString(2, email);
+			System.out.println(pst.toString());
+			if (pst.executeUpdate() == 1) {
+				PreparedStatement pst1 = connect.prepareStatement(sql1);
+				pst1.setString(1, email);
+				ResultSet rs = pst1.executeQuery();
+				if (rs.next()) {
+					User user = new User();
+					user.setid(rs.getInt("id"));
+					user.setemail(rs.getString("email"));
+					user.setusername(rs.getString("username"));
+					user.setpassword(rs.getString("password"));
+					connect.close();
+					return user;
+				}
+			}
 		} catch (SQLException e) {
 			e.printStackTrace();
+			return null;
 		}
-		return false;
+		return null;
 	}
 
 	public ArrayList<Message> getAllMess(int id) {
@@ -308,6 +349,70 @@ class Menber extends Thread {
 		return listUser;
 	}
 
+	public int getIDbyUsername(String username) throws SQLException {
+		ResultSet result = null;
+		Connection connect = ConnectDB.getConnection();
+		String sql = "select id from user where username=?";
+		try {
+			PreparedStatement pst = connect.prepareStatement(sql);
+			pst.setString(1, username);
+			result = pst.executeQuery();
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+		result.next();
+		return result.getInt("id");
+	}
+
+	public boolean addMess(Message message) {
+		Connection connect = ConnectDB.getConnection();
+		String sql = "insert into message (id_sender, id_receiver, title, content, create_at) values(?,?,?,?,?)";
+		try {
+			PreparedStatement ps = connect.prepareCall(sql);
+			ps.setInt(1, message.getid_sender());
+			ps.setInt(2, message.getid_receiver());
+			ps.setString(3, message.gettitle());
+			ps.setString(4, message.getcontent());
+			ps.setString(5, message.getcreate_at());
+			ps.executeUpdate();
+			return true;
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+		return false;
+	}
+
+	public boolean addAttachment(Attachment attachment) throws SQLException {
+		Connection connect = ConnectDB.getConnection();
+		String sql = "Insert into attachment(id_mess,file_name,file_data) " + " values (?,?,?) ";
+		boolean check = false;
+		try {
+			ByteArrayInputStream file_data = new ByteArrayInputStream((attachment.getfile_data()).getBytes());
+			PreparedStatement pstm = connect.prepareStatement(sql);
+			pstm.setInt(1, attachment.getid_mess());
+			pstm.setString(2, attachment.getfile_name());
+			pstm.setBlob(3, file_data);
+			pstm.executeUpdate();
+			check = true;
+		} catch (SQLException e) {
+			e.printStackTrace();
+			check = false;
+		}
+		return check;
+	}
+
+	public int getMaxIdMess() throws SQLException {
+		Connection connect = ConnectDB.getConnection();
+		String sql = "Select max(a.id) from message a";
+		PreparedStatement pstm = connect.prepareStatement(sql);
+		ResultSet rs = pstm.executeQuery();
+		if (rs.next()) {
+			int max = rs.getInt(1);
+			return max;
+		}
+		return 0;
+	}
+
 	public Message getMess(int id) {
 		Message mess = new Message();
 		Connection connect = ConnectDB.getConnection();
@@ -324,6 +429,30 @@ class Menber extends Thread {
 			e.printStackTrace();
 		}
 		return mess;
+	}
+
+	public ArrayList<Attachment> getAttachment(int id_mess) throws IOException {
+		ArrayList<Attachment> data = new ArrayList<Attachment>();
+		Attachment attachment = new Attachment();
+		Connection connect = ConnectDB.getConnection();
+		String sql = "SELECT * FROM attachment WHERE id_mess = ?";
+		try {
+			PreparedStatement pst = connect.prepareStatement(sql);
+			pst.setInt(1, id_mess);
+			ResultSet rs = pst.executeQuery();
+			while (rs.next()) {
+				Blob blob = rs.getBlob("file_data");
+				InputStream inputStream = blob.getBinaryStream();
+				byte[] in_byte = inputStream.readAllBytes();
+				String file_data = in_byte.toString();
+				attachment = new Attachment(rs.getInt("id"), rs.getInt("id_mess"), rs.getString("file_name"),
+						file_data);
+				data.add(attachment);
+			}
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+		return data;
 	}
 
 	public int deleteMess(int id) {
@@ -349,7 +478,7 @@ class Menber extends Thread {
 		}
 		String list_id = ids.toString();
 		String end = "";
-		for (int i = 1; i < list_id.length()-1; i++) {
+		for (int i = 1; i < list_id.length() - 1; i++) {
 			end = end + list_id.charAt(i);
 		}
 		Connection connect = ConnectDB.getConnection();
@@ -383,14 +512,6 @@ class Menber extends Thread {
 				e.printStackTrace();
 			}
 		}
-//		ArrayList<Message> list = new ArrayList<Message>();
-//		for (int i = 0; i < list_mess.size(); i++) {
-//			for (int j = i + 1; j < list_mess.size(); j++) {
-//				if(list_mess.get(i).getid()!=list_mess.get(j).getid()) {
-//					list.add(list_mess.get(i));
-//				}
-//			}
-//		}
 		return list_mess;
 	}
 
