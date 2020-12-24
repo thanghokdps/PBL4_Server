@@ -228,7 +228,9 @@ class Menber extends Thread {
 					}
 					status=status.substring(0, status.length()-1);
 					receiver=receiver.substring(0, receiver.length()-1);
-					idmess=idmess.substring(0, idmess.length()-1);
+					if (!idmess.equals("")) {
+						idmess=idmess.substring(0, idmess.length()-1);
+					}
 					
 					Message_Sent message_Sent = new Message_Sent();
 					message_Sent.setid_sender(id_sender);
@@ -245,26 +247,29 @@ class Menber extends Thread {
 					break;
 				case "insert_attachment":
 					String id_meessString = (String) request.get("id_mess");
-					int id_mess_SentString = Integer.parseInt(request.get("id_mess_sent"));
-					String[] id_messs = id_meessString.split(",");
-					int[] id_mess = new int[id_messs.length];
-					for (int i = 0; i < id_mess.length; i++) {
-						id_mess[i]=Integer.parseInt(id_messs[i]);
+					String id_mess_sent = id_meessString.substring(id_meessString.lastIndexOf(",")+1);
+					System.out.println(id_mess_sent);
+					String id_mess = id_meessString.substring(0,id_meessString.lastIndexOf(","));
+					System.out.println(id_mess);
+					String[] id_messs = id_mess.split(",");
+					int[] id_mess1 = new int[id_messs.length];
+					for (int i = 0; i < id_mess1.length; i++) {
+						id_mess1[i]=Integer.parseInt(id_messs[i]);
 					}
 					String file_name = (String) request.get("file_name");
 					String file_data = (String) request.get("file_data");
 					Attachment_Sent attachment_sent = new Attachment_Sent();
 					attachment_sent.setfile_data(file_data);
 					attachment_sent.setfile_name(file_name);
-					attachment_sent.setid_mess(id_mess_SentString);
+					attachment_sent.setid_mess(Integer.parseInt(id_mess_sent));
 					Attachment attachment = new Attachment();
 					attachment.setfile_name(file_name);
 					attachment.setfile_data(file_data);
-					for (int i : id_mess) {
+					for (int i : id_mess1) {
 						attachment.setid_mess(i);
 						System.out.println(
 								"Add " + attachment.getid_mess() + attachment.getfile_name() + attachment.getfile_data());
-						if (addAttachment(attachment) == false && addAttachmentSent(attachment_sent) == false) {
+						if (addAttachment(attachment) == false || addAttachmentSent(attachment_sent) == false) {
 							response.put("status", "fail");
 						} else {
 							response.put("status", "success");
@@ -464,7 +469,7 @@ class Menber extends Thread {
 			pst.setInt(1, id);
 			ResultSet rs = pst.executeQuery();
 			while (rs.next()) {
-				Message_Sent mess = new Message_Sent(rs.getInt("id"), rs.getInt("id_sender"), rs.getString("id_receivers"),
+				Message_Sent mess = new Message_Sent(rs.getInt("id"), rs.getInt("id_sender"), rs.getString("receivers"),
 						rs.getString("title"), rs.getString("content"), rs.getString("create_at"));
 				listmess.add(mess);
 			}
@@ -568,7 +573,7 @@ class Menber extends Thread {
 	
 	public boolean addAttachmentSent(Attachment_Sent attachment_sent) throws SQLException {
 		Connection connect = ConnectDB.getConnection();
-		String sql = "Insert into attachment_sent(id_mess,file_name,file_data) " + " values (?,?,?) ";
+		String sql = "Insert into attachment_sent (id_mess,file_name,file_data) " + " values (?,?,?) ";
 		boolean check = false;
 		try {
 			ByteArrayInputStream file_data = new ByteArrayInputStream((attachment_sent.getfile_data()).getBytes());
@@ -576,8 +581,9 @@ class Menber extends Thread {
 			pstm.setInt(1, attachment_sent.getid_mess());
 			pstm.setString(2, attachment_sent.getfile_name());
 			pstm.setBlob(3, file_data);
-			pstm.executeUpdate();
-			check = true;
+			if (pstm.executeUpdate()==1) {
+				check = true;
+			}
 		} catch (SQLException e) {
 			e.printStackTrace();
 			check = false;
@@ -636,7 +642,7 @@ class Menber extends Thread {
 			pst.setInt(1, id);
 			ResultSet rs = pst.executeQuery();
 			if (rs.next()) {
-				mess_sent = new Message_Sent(rs.getInt("id"), rs.getInt("id_sender"), rs.getString("id_receivers"),
+				mess_sent = new Message_Sent(rs.getInt("id"), rs.getInt("id_sender"), rs.getString("receivers"),
 						rs.getString("title"), rs.getString("content"), rs.getString("create_at"));
 			}
 		} catch (SQLException e) {
@@ -826,12 +832,12 @@ class Menber extends Thread {
 		Connection connect = ConnectDB.getConnection();
 		if (list_user.size() == 0) {
 			try {
-				String sql = "select * from message_sent where id_receivers like \'%" + id + "%\' and title like \'%" + text
+				String sql = "select * from message_sent where receivers like \'%" + id + "%\' and title like \'%" + text
 						+ "%\' order by id desc";
 				PreparedStatement pst = connect.prepareStatement(sql);
 				ResultSet rs = pst.executeQuery();
 				while (rs.next()) {
-					Message_Sent mess_sent = new Message_Sent(rs.getInt("id"), rs.getInt("id_sender"), rs.getString("id_receivers"),
+					Message_Sent mess_sent = new Message_Sent(rs.getInt("id"), rs.getInt("id_sender"), rs.getString("receivers"),
 							rs.getString("title"), rs.getString("content"), rs.getString("create_at"));
 					list_mess_sent.add(mess_sent);
 				}
@@ -840,13 +846,13 @@ class Menber extends Thread {
 			}
 		} else {
 			try {
-				String sql = "select * from message_sent where id_receivers like \'%" + id + "%\' and id_sender in (" + end
-						+ ") or id_receivers like \'%" + id + "%\' and title like \'%" + text + "%\' order by id desc";
+				String sql = "select * from message_sent where receivers like \'%" + id + "%\' and id_sender in (" + end
+						+ ") or receivers like \'%" + id + "%\' and title like \'%" + text + "%\' order by id desc";
 				System.out.print("ddddd" + sql);
 				PreparedStatement pst = connect.prepareStatement(sql);
 				ResultSet rs = pst.executeQuery();
 				while (rs.next()) {
-					Message_Sent mess_sent = new Message_Sent(rs.getInt("id"), rs.getInt("id_sender"), rs.getString("id_receivers"),
+					Message_Sent mess_sent = new Message_Sent(rs.getInt("id"), rs.getInt("id_sender"), rs.getString("receivers"),
 							rs.getString("title"), rs.getString("content"), rs.getString("create_at"));
 					list_mess_sent.add(mess_sent);
 				}
