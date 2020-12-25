@@ -820,19 +820,10 @@ class Menber extends Thread {
 	public ArrayList<Message_Sent> searchMessageSent(String text, int id) {
 		ArrayList<Message_Sent> list_mess_sent = new ArrayList<Message_Sent>();
 		ArrayList<User> list_user = searchUser(text);
-		List<Integer> ids = new ArrayList<Integer>();
-		for (int i = 0; i < list_user.size(); i++) {
-			ids.add(list_user.get(i).getid());
-		}
-		String list_id = ids.toString();
-		String end = "";
-		for (int i = 1; i < list_id.length() - 1; i++) {
-			end = end + list_id.charAt(i);
-		}
 		Connection connect = ConnectDB.getConnection();
 		if (list_user.size() == 0) {
 			try {
-				String sql = "select * from message_sent where receivers like \'%" + id + "%\' and title like \'%" + text
+				String sql = "select * from message_sent where id_sender = " + id + " and title like \'%" + text
 						+ "%\' order by id desc";
 				PreparedStatement pst = connect.prepareStatement(sql);
 				ResultSet rs = pst.executeQuery();
@@ -846,8 +837,8 @@ class Menber extends Thread {
 			}
 		} else {
 			try {
-				String sql = "select * from message_sent where receivers like \'%" + id + "%\' and id_sender in (" + end
-						+ ") or receivers like \'%" + id + "%\' and title like \'%" + text + "%\' order by id desc";
+				String sql = "select * from message_sent where id_sender = " + id + " and receivers like \'%" + text
+						+ "%\' or id_sender = " + id + " and title like \'%" + text + "%\' order by id desc";
 				System.out.print("ddddd" + sql);
 				PreparedStatement pst = connect.prepareStatement(sql);
 				ResultSet rs = pst.executeQuery();
