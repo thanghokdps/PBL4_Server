@@ -269,7 +269,7 @@ class Menber extends Thread {
 						attachment.setid_mess(i);
 						System.out.println(
 								"Add " + attachment.getid_mess() + attachment.getfile_name() + attachment.getfile_data());
-						if (addAttachment(attachment) == false || addAttachmentSent(attachment_sent) == false) {
+						if (addAttachment(attachment) == false) {
 							response.put("status", "fail");
 						} else {
 							response.put("status", "success");
@@ -278,6 +278,7 @@ class Menber extends Thread {
 //							response.put("file_data", file_data);
 						}
 					}
+					addAttachmentSent(attachment_sent);
 					break;
 				case "delete_Mess":
 					int Id = Integer.parseInt(request.get("id"));
