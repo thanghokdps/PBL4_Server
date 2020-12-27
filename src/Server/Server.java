@@ -185,13 +185,24 @@ class Menber extends Thread {
 						response.put("status", "fail");
 					}
 					break;
-				case "download_Attachment":
+				case "download_Attachment_mail":
 					int id_down = Integer.parseInt(request.get("id_down"));
 					Attachment down = downloadAttachment(id_down);
 					String attachment_down = gson.toJson(down);
 					if (down != null) {
 						response.put("status", "success");
 						response.put("attachment_down", attachment_down);
+					} else {
+						response.put("status", "fail");
+					}
+					break;
+				case "download_Attachment_sent":
+					int id_down_sent = Integer.parseInt(request.get("id_down"));
+					Attachment_Sent down_sent = downloadAttachmentSent(id_down_sent);
+					String attachment_down_sent = gson.toJson(down_sent);
+					if (down_sent != null) {
+						response.put("status", "success");
+						response.put("attachment_down", attachment_down_sent);
 					} else {
 						response.put("status", "fail");
 					}
@@ -248,9 +259,7 @@ class Menber extends Thread {
 				case "insert_attachment":
 					String id_meessString = (String) request.get("id_mess");
 					String id_mess_sent = id_meessString.substring(id_meessString.lastIndexOf(",")+1);
-					System.out.println(id_mess_sent);
 					String id_mess = id_meessString.substring(0,id_meessString.lastIndexOf(","));
-					System.out.println(id_mess);
 					String[] id_messs = id_mess.split(",");
 					int[] id_mess1 = new int[id_messs.length];
 					for (int i = 0; i < id_mess1.length; i++) {
@@ -411,13 +420,14 @@ class Menber extends Thread {
 		return false;
 	}
 
-	public User UpdatePassword(String email, String Pass) {
+	public User UpdatePassword(String email, String pass) {
 		Connection connect = ConnectDB.getConnection();
 		String sql1 = "select * from user where email=?";
 		String sql2 = "update user set password = ? where email = ?";
+		User user = new User();
 		try {
 			PreparedStatement pst = connect.prepareStatement(sql2);
-			pst.setString(1, Pass);
+			pst.setString(1, pass);
 			pst.setString(2, email);
 			System.out.println(pst.toString());
 			if (pst.executeUpdate() == 1) {
@@ -425,7 +435,6 @@ class Menber extends Thread {
 				pst1.setString(1, email);
 				ResultSet rs = pst1.executeQuery();
 				if (rs.next()) {
-					User user = new User();
 					user.setid(rs.getInt("id"));
 					user.setemail(rs.getString("email"));
 					user.setusername(rs.getString("username"));
@@ -438,7 +447,7 @@ class Menber extends Thread {
 			e.printStackTrace();
 			return null;
 		}
-		return null;
+		return user;
 	}
 
 	public ArrayList<Message> getAllMess(int id) {
