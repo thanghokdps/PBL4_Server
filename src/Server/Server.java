@@ -209,7 +209,7 @@ class Menber extends Thread {
 					break;
 				case "insert_mess":
 					int id_sender = Integer.parseInt(request.get("id_sender"));
-					String namereceiver =(String)request.get("receiver");
+					String namereceiver = (String) request.get("receiver");
 					String[] receivers = namereceiver.split(",");
 					String title = request.get("title");
 					String content = request.get("content");
@@ -219,30 +219,30 @@ class Menber extends Thread {
 					message.settitle(title);
 					message.setcontent(content);
 					message.setcreate_at(create_at);
-					String status = ""; 
-					String receiver = ""; 
+					String status = "";
+					String receiver = "";
 					String idmess = "";
 					for (String string : receivers) {
 						int id_receiver = getIDbyUsername(string.trim());
 						message.setid_receiver(id_receiver);
-						System.out.println("Add " + message.getid_sender() + message.getid_receiver() + message.gettitle()
-								+ message.getcontent() + message.getcreate_at());
+						System.out.println("Add " + message.getid_sender() + message.getid_receiver()
+								+ message.gettitle() + message.getcontent() + message.getcreate_at());
 						int idm = addMess(message);
-						if ( idm == -1) {
-							status+="fail,";
-							receiver+=string+",";
+						if (idm == -1) {
+							status += "fail,";
+							receiver += string + ",";
 						} else {
-							status+="success,";
-							receiver+=string+",";
-							idmess+=String.valueOf(idm)+",";
+							status += "success,";
+							receiver += string + ",";
+							idmess += String.valueOf(idm) + ",";
 						}
 					}
-					status=status.substring(0, status.length()-1);
-					receiver=receiver.substring(0, receiver.length()-1);
+					status = status.substring(0, status.length() - 1);
+					receiver = receiver.substring(0, receiver.length() - 1);
 					if (!idmess.equals("")) {
-						idmess=idmess.substring(0, idmess.length()-1);
+						idmess = idmess.substring(0, idmess.length() - 1);
 					}
-					
+
 					Message_Sent message_Sent = new Message_Sent();
 					message_Sent.setid_sender(id_sender);
 					message_Sent.settitle(title);
@@ -250,20 +250,20 @@ class Menber extends Thread {
 					message_Sent.setcreate_at(create_at);
 					message_Sent.setreceivers(receiver);
 					String idmesssent = String.valueOf(addMessSent(message_Sent));
-					
+
 					response.put("status", status);
 					response.put("receiver", receiver);
-					response.put("id_mess",idmess);
+					response.put("id_mess", idmess);
 					response.put("id_mess_sent", idmesssent);
 					break;
 				case "insert_attachment":
 					String id_meessString = (String) request.get("id_mess");
-					String id_mess_sent = id_meessString.substring(id_meessString.lastIndexOf(",")+1);
-					String id_mess = id_meessString.substring(0,id_meessString.lastIndexOf(","));
+					String id_mess_sent = id_meessString.substring(id_meessString.lastIndexOf(",") + 1);
+					String id_mess = id_meessString.substring(0, id_meessString.lastIndexOf(","));
 					String[] id_messs = id_mess.split(",");
 					int[] id_mess1 = new int[id_messs.length];
 					for (int i = 0; i < id_mess1.length; i++) {
-						id_mess1[i]=Integer.parseInt(id_messs[i]);
+						id_mess1[i] = Integer.parseInt(id_messs[i]);
 					}
 					String file_name = (String) request.get("file_name");
 					String file_data = (String) request.get("file_data");
@@ -276,8 +276,8 @@ class Menber extends Thread {
 					attachment.setfile_data(file_data);
 					for (int i : id_mess1) {
 						attachment.setid_mess(i);
-						System.out.println(
-								"Add " + attachment.getid_mess() + attachment.getfile_name() + attachment.getfile_data());
+						System.out.println("Add " + attachment.getid_mess() + attachment.getfile_name()
+								+ attachment.getfile_data());
 						if (addAttachment(attachment) == false || addAttachmentSent(attachment_sent) == false) {
 							response.put("status", "fail");
 						} else {
@@ -341,32 +341,27 @@ class Menber extends Thread {
 					}
 					break;
 				case "valid_Email":
-					String emaiString = (String)request.get("email");
+					String emaiString = (String) request.get("email");
 					int valid = validEmail(emaiString);
-					if (valid==1) {
+					if (valid == 1) {
 						response.put("status", "available");
-					}
-					else if (valid==0) {
+					} else if (valid == 0) {
 						response.put("status", "unavailable");
-					}
-					else {
+					} else {
 						response.put("status", "error");
 					}
 					break;
 				case "valid_Acc":
-					String emailString = (String)request.get("email");
-					String userString = (String)request.get("username");
+					String emailString = (String) request.get("email");
+					String userString = (String) request.get("username");
 					int valid1 = validAcc(emailString, userString);
-					if (valid1==0) {
+					if (valid1 == 0) {
 						response.put("status", "unavailable");
-					}
-					else if (valid1==1) {
+					} else if (valid1 == 1) {
 						response.put("status", "userexist");
-					}
-					else if (valid1==2) {
+					} else if (valid1 == 2) {
 						response.put("status", "emailexist");
-					}
-					else {
+					} else {
 						response.put("status", "error");
 					}
 					break;
@@ -468,7 +463,7 @@ class Menber extends Thread {
 		}
 		return listmess;
 	}
-	
+
 	public ArrayList<Message_Sent> getAllMessSent(int id) {
 		ArrayList<Message_Sent> listmess = new ArrayList<>();
 		Connection connect = ConnectDB.getConnection();
@@ -517,17 +512,17 @@ class Menber extends Thread {
 		} catch (SQLException e) {
 			e.printStackTrace();
 		}
-		if(result.next())
+		if (result.next())
 			return result.getInt("id");
-		else return -1;
+		else
+			return -1;
 	}
 
 	public int addMess(Message message) throws SQLException {
 		Connection connect = ConnectDB.getConnection();
-		if (message.getid_receiver()==-1) {
+		if (message.getid_receiver() == -1) {
 			return -1;
-		}
-		else {
+		} else {
 			String sql = "insert into message (id_sender, id_receiver, title, content, create_at) values(?,?,?,?,?)";
 			PreparedStatement ps = connect.prepareCall(sql);
 			ps.setInt(1, message.getid_sender());
@@ -535,15 +530,14 @@ class Menber extends Thread {
 			ps.setString(3, message.gettitle());
 			ps.setString(4, message.getcontent());
 			ps.setString(5, message.getcreate_at());
-			if(ps.executeUpdate()==0) {
+			if (ps.executeUpdate() == 0) {
 				return -1;
-			}
-			else {
+			} else {
 				return getMaxIdMess();
 			}
 		}
 	}
-	
+
 	public int addMessSent(Message_Sent message_sent) throws SQLException {
 		Connection connect = ConnectDB.getConnection();
 		String sql = "insert into message_sent (id_sender, receivers, title, content, create_at) values(?,?,?,?,?)";
@@ -553,10 +547,9 @@ class Menber extends Thread {
 		ps.setString(3, message_sent.gettitle());
 		ps.setString(4, message_sent.getcontent());
 		ps.setString(5, message_sent.getcreate_at());
-		if(ps.executeUpdate()==0) {
+		if (ps.executeUpdate() == 0) {
 			return -1;
-		}
-		else {
+		} else {
 			return getMaxIdMessSent();
 		}
 	}
@@ -579,7 +572,7 @@ class Menber extends Thread {
 		}
 		return check;
 	}
-	
+
 	public boolean addAttachmentSent(Attachment_Sent attachment_sent) throws SQLException {
 		Connection connect = ConnectDB.getConnection();
 		String sql = "Insert into attachment_sent (id_mess,file_name,file_data) " + " values (?,?,?) ";
@@ -590,7 +583,7 @@ class Menber extends Thread {
 			pstm.setInt(1, attachment_sent.getid_mess());
 			pstm.setString(2, attachment_sent.getfile_name());
 			pstm.setBlob(3, file_data);
-			if (pstm.executeUpdate()==1) {
+			if (pstm.executeUpdate() == 1) {
 				check = true;
 			}
 		} catch (SQLException e) {
@@ -611,7 +604,7 @@ class Menber extends Thread {
 		}
 		return 0;
 	}
-	
+
 	public int getMaxIdMessSent() throws SQLException {
 		Connection connect = ConnectDB.getConnection();
 		String sql = "Select max(a.id) from message_sent a";
@@ -641,7 +634,7 @@ class Menber extends Thread {
 		}
 		return mess;
 	}
-	
+
 	public Message_Sent getMessSent(int id) {
 		Message_Sent mess_sent = new Message_Sent();
 		Connection connect = ConnectDB.getConnection();
@@ -683,7 +676,7 @@ class Menber extends Thread {
 		}
 		return data;
 	}
-	
+
 	public ArrayList<Attachment_Sent> getAttachmentSent(int id_mess) throws IOException {
 		ArrayList<Attachment_Sent> data = new ArrayList<Attachment_Sent>();
 		Attachment_Sent attachment_sent = new Attachment_Sent();
@@ -707,7 +700,7 @@ class Menber extends Thread {
 		}
 		return data;
 	}
-	
+
 	public Attachment downloadAttachment(int id) throws IOException {
 		Attachment attachment = new Attachment();
 		Connection connect = ConnectDB.getConnection();
@@ -729,7 +722,7 @@ class Menber extends Thread {
 		}
 		return attachment;
 	}
-	
+
 	public Attachment_Sent downloadAttachmentSent(int id) throws IOException {
 		Attachment_Sent attachment_sent = new Attachment_Sent();
 		Connection connect = ConnectDB.getConnection();
@@ -756,7 +749,11 @@ class Menber extends Thread {
 		int result = 0;
 		Connection connect = ConnectDB.getConnection();
 		String sql = "DELETE from message where id=?";
+		String sqlString = "delete from attachment Where id_mess = "+id;
+		
 		try {
+			PreparedStatement ps = connect.prepareStatement(sqlString);
+			ps.executeUpdate();
 			PreparedStatement pst = connect.prepareStatement(sql);
 			pst.setInt(1, id);
 			result = pst.executeUpdate();
@@ -770,7 +767,10 @@ class Menber extends Thread {
 		int result = 0;
 		Connection connect = ConnectDB.getConnection();
 		String sql = "DELETE from message_sent where id=?";
+		String sqlString = "delete from attachment_sent Where id_mess = "+id;
 		try {
+			PreparedStatement ps = connect.prepareStatement(sqlString);
+			ps.executeUpdate();
 			PreparedStatement pst = connect.prepareStatement(sql);
 			pst.setInt(1, id);
 			result = pst.executeUpdate();
@@ -825,7 +825,7 @@ class Menber extends Thread {
 		}
 		return list_mess;
 	}
-	
+
 	public ArrayList<Message_Sent> searchMessageSent(String text, int id) {
 		ArrayList<Message_Sent> list_mess_sent = new ArrayList<Message_Sent>();
 		ArrayList<User> list_user = searchUser(text);
@@ -841,13 +841,14 @@ class Menber extends Thread {
 		Connection connect = ConnectDB.getConnection();
 		if (list_user.size() == 0) {
 			try {
-				String sql = "select * from message_sent where receivers like \'%" + id + "%\' and title like \'%" + text
-						+ "%\' order by id desc";
+				String sql = "select * from message_sent where receivers like \'%" + id + "%\' and title like \'%"
+						+ text + "%\' order by id desc";
 				PreparedStatement pst = connect.prepareStatement(sql);
 				ResultSet rs = pst.executeQuery();
 				while (rs.next()) {
-					Message_Sent mess_sent = new Message_Sent(rs.getInt("id"), rs.getInt("id_sender"), rs.getString("receivers"),
-							rs.getString("title"), rs.getString("content"), rs.getString("create_at"));
+					Message_Sent mess_sent = new Message_Sent(rs.getInt("id"), rs.getInt("id_sender"),
+							rs.getString("receivers"), rs.getString("title"), rs.getString("content"),
+							rs.getString("create_at"));
 					list_mess_sent.add(mess_sent);
 				}
 			} catch (SQLException e) {
@@ -861,8 +862,9 @@ class Menber extends Thread {
 				PreparedStatement pst = connect.prepareStatement(sql);
 				ResultSet rs = pst.executeQuery();
 				while (rs.next()) {
-					Message_Sent mess_sent = new Message_Sent(rs.getInt("id"), rs.getInt("id_sender"), rs.getString("receivers"),
-							rs.getString("title"), rs.getString("content"), rs.getString("create_at"));
+					Message_Sent mess_sent = new Message_Sent(rs.getInt("id"), rs.getInt("id_sender"),
+							rs.getString("receivers"), rs.getString("title"), rs.getString("content"),
+							rs.getString("create_at"));
 					list_mess_sent.add(mess_sent);
 				}
 			} catch (SQLException e) {
@@ -890,7 +892,7 @@ class Menber extends Thread {
 		System.out.print(list.toString());
 		return list;
 	}
-	
+
 	public int validEmail(String email) {
 		Connection connect = ConnectDB.getConnection();
 		String sql = "select email from user where email =?";
@@ -900,8 +902,7 @@ class Menber extends Thread {
 			ResultSet rs = pst.executeQuery();
 			if (rs.next()) {
 				return 1;
-			}
-			else {
+			} else {
 				return 0;
 			}
 		} catch (Exception e) {
@@ -909,7 +910,7 @@ class Menber extends Thread {
 			return -1;
 		}
 	}
-	
+
 	public int validAcc(String email, String username) {
 		Connection connect = ConnectDB.getConnection();
 		String sql = "select username,email from user where email = ? or username = ?";
@@ -921,12 +922,10 @@ class Menber extends Thread {
 			if (rs.next()) {
 				if (rs.getString("username").equals(username)) {
 					return 1;
-				}
-				else {
+				} else {
 					return 2;
 				}
-			}
-			else {
+			} else {
 				return 0;
 			}
 		} catch (Exception e) {
